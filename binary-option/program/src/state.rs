@@ -9,6 +9,9 @@ use borsh::{BorshDeserialize, BorshSerialize};
 #[derive(BorshSerialize, BorshDeserialize, Debug, Clone)]
 pub struct BinaryOption {
     pub decimals: u8,
+    pub expiry: u64,
+    pub strike: u64,
+    pub strike_exponent: i64,
     pub circulation: u64,
     pub settled: bool,
     pub escrow_mint_account_pubkey: Pubkey,
@@ -17,9 +20,7 @@ pub struct BinaryOption {
     pub short_mint_account_pubkey: Pubkey,
     pub owner: Pubkey,
     pub winning_side_pubkey: Pubkey,
-    pub underlying_asset_address: String,
-    pub strike: f64,
-    pub expiry :u64,
+    //pub underlying_asset_address: String,
     //let clock = Clock::get();
     // clock.unix_timestamp; 
     // note pub unix_timestamp: UnixTimestamp,
@@ -28,7 +29,10 @@ pub struct BinaryOption {
 }
 
 impl BinaryOption {
-    pub const LEN: usize = 202;
+    pub const LEN: usize = 226;
+    // u8 = 1 
+    // u64 = 8
+    // pubkey 32
 
     pub fn from_account_info(a: &AccountInfo) -> Result<BinaryOption, ProgramError> {
         let binary_option = BinaryOption::try_from_slice(&a.data.borrow_mut())?;

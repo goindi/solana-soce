@@ -103,10 +103,12 @@ token = Token.create_mint(
 )
 
 mint = str(token.pubkey)
-expiry = int(time.time()) + 2000
-strike = 121.00
+expiry = int(time.time() + 2000)
+strike = 12100
+exponent = -2
+decimals = 2
 underlying_asset_address = "4aDoSXJ5o3AuvL7QFeR6h44jALQfTmUUCTVGDD6aoJTM"
-res = json.loads(bp.initialize(api_endpoint, mint, expiry, strike, decimals=2,skip_confirmation=False))
+res = json.loads(bp.initialize(api_endpoint, mint,decimals, expiry,strike,exponent, skip_confirmation=False))
 print(res)
 
 pool = res.get("binary_option")

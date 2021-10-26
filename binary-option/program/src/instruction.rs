@@ -11,7 +11,8 @@ use borsh::{BorshDeserialize, BorshSerialize};
 pub struct InitializeBinaryOptionArgs {
     pub decimals: u8,
     pub expiry: u64,
-    pub strike: f64,
+    pub strike: u64,
+    pub strike_exponent: i64,
    // pub underlying_asset_address: String,
 }
 
@@ -49,7 +50,8 @@ pub fn initialize_binary_option(
     update_authority: Pubkey, // Address of Upgrade Authority
     decimals: u8, // 2 = 100, 3 = 1000 [ only using 2 for now ]
     expiry:  u64, // Unix timestamp
-    strike: f64, // 64-bit float
+    strike: u64, // strike_price
+    strike_exponent: i64, // strike_price
     //underlying_asset_address: Pubkey, // Address of underlying asset [ from Pyth for now ]
 
 ) -> Instruction {
@@ -71,6 +73,7 @@ pub fn initialize_binary_option(
             decimals,
             expiry,
             strike,
+            strike_exponent,
         })
         .try_to_vec()
         .unwrap(),

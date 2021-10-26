@@ -20,7 +20,9 @@ from spl.token.instructions import (
 SYSTEM_PROGRAM_ID = '11111111111111111111111111111111'
 SYSVAR_RENT_ID = 'SysvarRent111111111111111111111111111111111'
 ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID = 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL'
+#ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID = '3j9FoxSFxxGHa4DaZtAcgbcYsTGjfX4A1CUuryXQLTu4'
 TOKEN_PROGRAM_ID = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+#TOKEN_PROGRAM_ID = 'DeNdywXid1aKDFrW1F8SHVPCqkusFDEtDBQJjjZPdeZZ'
 BINARY_OPTION_PROGRAM_ID = '6Msecaqpxtqatks2JyqXg66nYZ3XxrZ8gDwuSaH6sept'
 
 
@@ -38,6 +40,7 @@ def initialize_binary_option_instruction(
     decimals,
     expiry,
     strike,
+    strike_exponent,
     #underlying_asset_address,
 ):
     keys = [
@@ -52,7 +55,7 @@ def initialize_binary_option_instruction(
         AccountMeta(pubkey=system_account, is_signer=False, is_writable=False),
         AccountMeta(pubkey=rent_account, is_signer=False, is_writable=False),
     ]
-    data = struct.pack("<BHQf", 0, decimals, expiry, strike)
+    data = struct.pack("<BBQQq", 0, decimals, expiry,strike,strike_exponent)
     return TransactionInstruction(keys=keys, program_id=PublicKey(BINARY_OPTION_PROGRAM_ID), data=data)
 
 def trade_instruction(
@@ -159,7 +162,7 @@ class BinaryOption():
         self.cipher = Fernet(cfg["DECRYPTION_KEY"])
 
 
-    def initialize(self, api_endpoint, escrow_mint, expiry, strike,  decimals=2, skip_confirmation=True):
+    def initialize(self, api_endpoint, escrow_mint, decimals, expiry,strike,strike_exponent, skip_confirmation=True):
         msg = ""
         # Initalize Clinet
         client = Client(api_endpoint)
@@ -200,8 +203,9 @@ class BinaryOption():
             system_account,
             rent_account,
             decimals,
-            expiry,
+            int(expiry),
             strike,
+            strike_exponent,
             #underlying_asset_address,
         )
         tx = tx.add(init_binary_option_ix)
@@ -450,11 +454,17 @@ class BinaryOption():
                 }
             )
         pubkey = 'B' * 32
-        raw_bytes = struct.unpack(f"<BQ?{pubkey}{pubkey}{pubkey}{pubkey}{pubkey}{pubkey}", pool_data)
+        raw_bytes = struct.unpack(f"<BQQqQB{pubkey}{pubkey}{pubkey}{pubkey}{pubkey}{pubkey}", pool_data)
         i = 0
         pool = {}
         pool["decimals"] = raw_bytes[i] 
         i += 1
+        pool["expiry"] = raw_bytes[i]
+        i += 8
+        pool["strike"] = raw_bytes[i]
+        i += 8
+        pool["strike_exponent"] = raw_bytes[i]
+        i += 8
         pool["circulation"] = raw_bytes[i] 
         i += 1
         pool["settled"] = raw_bytes[i] 

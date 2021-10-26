@@ -45,7 +45,8 @@ impl Processor {
                     accounts, 
                     args.decimals, 
                     args.expiry, 
-                    args.strike
+                    args.strike,
+                    args.strike_exponent,
                    // args.underlying_asset_address
                 )
             }
@@ -80,14 +81,15 @@ pub fn process_initialize_binary_option(
     accounts: &[AccountInfo],
     decimals: u8,
     expiry: u64,
-    strike: f64,
+    strike: u64,
+    strike_exponent: i64,
    // underlying_asset_address: String,
 ) -> ProgramResult {
     //Check to make sure you are not initializing an option that has already expired
-    let now = Clock::get()?.unix_timestamp as u64;
+   /* let now = Clock::get()?.unix_timestamp as u64;
     if expiry < now{
         return Err(BinaryOptionError::ExpiryInThePast.into());
-    }
+    }*/
 
     let account_info_iter = &mut accounts.iter();
     let binary_option_account_info = next_account_info(account_info_iter)?;
@@ -188,14 +190,17 @@ pub fn process_initialize_binary_option(
         update_authority_info,
         BinaryOption::LEN,
     )?;
-    msg!("Reached Here");
+    msg!("**********Reached Here 1*************");
+ 
     let mut binary_option =
         BinaryOption::try_from_slice(&binary_option_account_info.data.borrow_mut())?;
+    msg!("**********Reached Here 2*************");
     binary_option.decimals = decimals;
+    binary_option.expiry = expiry;
     binary_option.circulation = 0;
     binary_option.settled = false;
-    binary_option.expiry = expiry;
     binary_option.strike = strike;
+    binary_option.strike_exponent = strike_exponent;
     //binary_option.underlying_asset_address = underlying_asset_address;
 
     binary_option.long_mint_account_pubkey = *long_token_mint_info.key;
@@ -203,8 +208,9 @@ pub fn process_initialize_binary_option(
     binary_option.escrow_mint_account_pubkey = *escrow_mint_info.key;
     binary_option.escrow_account_pubkey = *escrow_account_info.key;
     binary_option.owner = *update_authority_info.key;
-    
+    msg!("**********Reached Here 3*************");
     binary_option.serialize(&mut *binary_option_account_info.data.borrow_mut())?;
+    msg!("*************Reached Here 4***************");
 
     Ok(())
 }
@@ -676,10 +682,10 @@ pub fn process_settle_oracled(_program_id: &Pubkey, accounts: &[AccountInfo]) ->
     assert_keys_equal(*short_mint_token_account_info.key, binary_option.short_mint_account_pubkey)?;
     let (settle_price,confidence_interval) = get_price_from_pyth(&String::from("foo"));
 
-    if (settle_price+confidence_interval) > binary_option.strike {
+    if (settle_price+confidence_interval) > 100.0 {
         binary_option.winning_side_pubkey = binary_option.long_mint_account_pubkey;
     }
-    else if (settle_price-confidence_interval) < binary_option.strike {
+    else if (settle_price-confidence_interval) < 100.0 {
         binary_option.winning_side_pubkey = binary_option.short_mint_account_pubkey;
     }
     //This is if we dont know whether long one or short. SO divide equally. FOr now maybe implementation will be in future
