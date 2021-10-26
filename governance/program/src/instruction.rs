@@ -224,7 +224,7 @@ pub enum GovernanceInstruction {
     ///   4. `[writable]` ProposalInstruction account. PDA seeds: ['governance',proposal,index]
     ///   5. `[signer]` Payer
     ///   6. `[]` System program
-    ///   7. `[]` Clock sysvar
+    ///   7. `[]` Rent sysvar
     InsertInstruction {
         #[allow(dead_code)]
         /// Instruction index to be inserted at.
@@ -253,6 +253,7 @@ pub enum GovernanceInstruction {
     ///   1. `[writable]`  TokenOwnerRecord account of the  Proposal owner
     ///   2. `[signer]` Governance Authority (Token Owner or Governance Delegate)
     ///   3. `[]` Clock sysvar
+    ///   4. `[]` Governance account
     CancelProposal,
 
     /// Signs off Proposal indicating the Signatory approves the Proposal
@@ -464,7 +465,7 @@ pub fn create_realm(
         AccountMeta::new_readonly(*realm_authority, false),
         AccountMeta::new_readonly(*community_token_mint, false),
         AccountMeta::new(community_token_holding_address, false),
-        AccountMeta::new_readonly(*payer, true),
+        AccountMeta::new(*payer, true),
         AccountMeta::new_readonly(system_program::id(), false),
         AccountMeta::new_readonly(spl_token::id(), false),
         AccountMeta::new_readonly(sysvar::rent::id(), false),
@@ -543,7 +544,7 @@ pub fn deposit_governing_tokens(
         AccountMeta::new_readonly(*governing_token_owner, true),
         AccountMeta::new_readonly(*governing_token_transfer_authority, true),
         AccountMeta::new(token_owner_record_address, false),
-        AccountMeta::new_readonly(*payer, true),
+        AccountMeta::new(*payer, true),
         AccountMeta::new_readonly(system_program::id(), false),
         AccountMeta::new_readonly(spl_token::id(), false),
         AccountMeta::new_readonly(sysvar::rent::id(), false),
@@ -652,7 +653,7 @@ pub fn create_account_governance(
         AccountMeta::new(account_governance_address, false),
         AccountMeta::new_readonly(*governed_account, false),
         AccountMeta::new_readonly(*token_owner_record, false),
-        AccountMeta::new_readonly(*payer, true),
+        AccountMeta::new(*payer, true),
         AccountMeta::new_readonly(system_program::id(), false),
         AccountMeta::new_readonly(sysvar::rent::id(), false),
         AccountMeta::new_readonly(*governance_authority, true),
@@ -696,7 +697,7 @@ pub fn create_program_governance(
         AccountMeta::new(governed_program_data_address, false),
         AccountMeta::new_readonly(*governed_program_upgrade_authority, true),
         AccountMeta::new_readonly(*token_owner_record, false),
-        AccountMeta::new_readonly(*payer, true),
+        AccountMeta::new(*payer, true),
         AccountMeta::new_readonly(bpf_loader_upgradeable::id(), false),
         AccountMeta::new_readonly(system_program::id(), false),
         AccountMeta::new_readonly(sysvar::rent::id(), false),
@@ -741,7 +742,7 @@ pub fn create_mint_governance(
         AccountMeta::new(*governed_mint, false),
         AccountMeta::new_readonly(*governed_mint_authority, true),
         AccountMeta::new_readonly(*token_owner_record, false),
-        AccountMeta::new_readonly(*payer, true),
+        AccountMeta::new(*payer, true),
         AccountMeta::new_readonly(spl_token::id(), false),
         AccountMeta::new_readonly(system_program::id(), false),
         AccountMeta::new_readonly(sysvar::rent::id(), false),
@@ -786,7 +787,7 @@ pub fn create_token_governance(
         AccountMeta::new(*governed_token, false),
         AccountMeta::new_readonly(*governed_token_owner, true),
         AccountMeta::new_readonly(*token_owner_record, false),
-        AccountMeta::new_readonly(*payer, true),
+        AccountMeta::new(*payer, true),
         AccountMeta::new_readonly(spl_token::id(), false),
         AccountMeta::new_readonly(system_program::id(), false),
         AccountMeta::new_readonly(sysvar::rent::id(), false),
@@ -837,7 +838,7 @@ pub fn create_proposal(
         AccountMeta::new(*governance, false),
         AccountMeta::new(*proposal_owner_record, false),
         AccountMeta::new_readonly(*governance_authority, true),
-        AccountMeta::new_readonly(*payer, true),
+        AccountMeta::new(*payer, true),
         AccountMeta::new_readonly(system_program::id(), false),
         AccountMeta::new_readonly(sysvar::rent::id(), false),
         AccountMeta::new_readonly(sysvar::clock::id(), false),
@@ -876,7 +877,7 @@ pub fn add_signatory(
         AccountMeta::new_readonly(*token_owner_record, false),
         AccountMeta::new_readonly(*governance_authority, true),
         AccountMeta::new(signatory_record_address, false),
-        AccountMeta::new_readonly(*payer, true),
+        AccountMeta::new(*payer, true),
         AccountMeta::new_readonly(system_program::id(), false),
         AccountMeta::new_readonly(sysvar::rent::id(), false),
     ];
@@ -977,7 +978,7 @@ pub fn cast_vote(
         AccountMeta::new_readonly(*governance_authority, true),
         AccountMeta::new(vote_record_address, false),
         AccountMeta::new_readonly(*governing_token_mint, false),
-        AccountMeta::new_readonly(*payer, true),
+        AccountMeta::new(*payer, true),
         AccountMeta::new_readonly(system_program::id(), false),
         AccountMeta::new_readonly(sysvar::rent::id(), false),
         AccountMeta::new_readonly(sysvar::clock::id(), false),
@@ -1064,12 +1065,14 @@ pub fn cancel_proposal(
     proposal: &Pubkey,
     proposal_owner_record: &Pubkey,
     governance_authority: &Pubkey,
+    governance: &Pubkey,
 ) -> Instruction {
     let accounts = vec![
         AccountMeta::new(*proposal, false),
         AccountMeta::new(*proposal_owner_record, false),
         AccountMeta::new_readonly(*governance_authority, true),
         AccountMeta::new_readonly(sysvar::clock::id(), false),
+        AccountMeta::new_readonly(*governance, false),
     ];
 
     let instruction = GovernanceInstruction::CancelProposal {};
@@ -1105,7 +1108,7 @@ pub fn insert_instruction(
         AccountMeta::new_readonly(*token_owner_record, false),
         AccountMeta::new_readonly(*governance_authority, true),
         AccountMeta::new(proposal_instruction_address, false),
-        AccountMeta::new_readonly(*payer, true),
+        AccountMeta::new(*payer, true),
         AccountMeta::new_readonly(system_program::id(), false),
         AccountMeta::new_readonly(sysvar::rent::id(), false),
     ];
@@ -1349,7 +1352,7 @@ pub fn create_token_owner_record(
         AccountMeta::new_readonly(*governing_token_owner, false),
         AccountMeta::new(token_owner_record_address, false),
         AccountMeta::new_readonly(*governing_token_mint, false),
-        AccountMeta::new_readonly(*payer, true),
+        AccountMeta::new(*payer, true),
         AccountMeta::new_readonly(system_program::id(), false),
     ];
 

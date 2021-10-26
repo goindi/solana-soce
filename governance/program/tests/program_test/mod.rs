@@ -52,6 +52,7 @@ use spl_governance::{
     tools::bpf_loader_upgradeable::get_program_data_address,
 };
 
+pub mod addins;
 pub mod cookies;
 
 use crate::program_test::cookies::{
@@ -63,10 +64,13 @@ use spl_governance_test_sdk::{
     ProgramTestBench, TestBenchProgram,
 };
 
-use self::cookies::{
-    GovernanceCookie, GovernedAccountCookie, GovernedMintCookie, GovernedProgramCookie,
-    GovernedTokenCookie, ProposalCookie, ProposalInstructionCookie, RealmCookie,
-    TokenOwnerRecordCookie, VoteRecordCookie,
+use self::{
+    addins::ensure_voter_weight_addin_is_built,
+    cookies::{
+        GovernanceCookie, GovernedAccountCookie, GovernedMintCookie, GovernedProgramCookie,
+        GovernedTokenCookie, ProposalCookie, ProposalInstructionCookie, RealmCookie,
+        TokenOwnerRecordCookie, VoteRecordCookie,
+    },
 };
 
 pub struct GovernanceProgramTest {
@@ -84,6 +88,8 @@ impl GovernanceProgramTest {
 
     #[allow(dead_code)]
     pub async fn start_with_voter_weight_addin() -> Self {
+        ensure_voter_weight_addin_is_built();
+
         Self::start_impl(true).await
     }
 
@@ -251,9 +257,9 @@ impl GovernanceProgramTest {
                     account_type: GovernanceAccountType::RealmConfig,
                     realm: realm_address,
                     community_voter_weight_addin: self.voter_weight_addin_id,
-                    reserved_1: None,
-                    reserved_2: None,
-                    reserved_3: None,
+                    community_max_vote_weight_addin: None,
+                    council_voter_weight_addin: None,
+                    council_max_vote_weight_addin: None,
                     reserved: [0; 128],
                 },
             })
@@ -348,6 +354,7 @@ impl GovernanceProgramTest {
         }
     }
 
+    // Creates TokenOwner which owns 100 community tokens and deposits them into the given Realm
     #[allow(dead_code)]
     pub async fn with_community_token_deposit(
         &mut self,
@@ -815,9 +822,9 @@ impl GovernanceProgramTest {
                     community_voter_weight_addin: Some(
                         set_realm_config_ix.accounts[community_voter_weight_addin_index].pubkey,
                     ),
-                    reserved_1: None,
-                    reserved_2: None,
-                    reserved_3: None,
+                    community_max_vote_weight_addin: None,
+                    council_voter_weight_addin: None,
+                    council_max_vote_weight_addin: None,
                     reserved: [0; 128],
                 },
             })
@@ -1662,6 +1669,7 @@ impl GovernanceProgramTest {
             &proposal_cookie.address,
             &token_owner_record_cookie.address,
             &token_owner_record_cookie.token_owner.pubkey(),
+            &proposal_cookie.account.governance,
         );
 
         self.bench
@@ -2194,8 +2202,6 @@ impl GovernanceProgramTest {
 
         // Governance program has no dependency on the voter-weight-addin program and hence we can't use its instruction creator here
         // and the instruction has to be created manually
-        // TODO: Currently the addin spl_governance_voter_weight_addin.so must be manually copied to tests/fixtures to work on CI
-        //       We should automate this step as part of the build to build the addin before governance
         let accounts = vec![
             AccountMeta::new_readonly(self.program_id, false),
             AccountMeta::new_readonly(token_owner_record_cookie.account.realm, false),

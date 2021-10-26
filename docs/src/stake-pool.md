@@ -22,6 +22,27 @@ Additional information regarding staking and stake programming is available at:
 - https://solana.com/staking
 - https://docs.solana.com/staking/stake-programming
 
+## Quick Start
+
+If you're looking to get immediately into creating and running a stake pool,
+take a look at the
+[reference scripts](https://github.com/solana-labs/solana-program-library/tree/master/stake-pool/cli/scripts).
+
+These scripts require the Solana CLI tool suite, which can be downloaded by
+following the instructions at (https://docs.solana.com/cli/install-solana-cli-tools).
+Additionally, you must have a usable keypair, created at the default location
+using `solana-keygen new`.
+
+You'll see the following scripts:
+
+* `setup-local.sh`: sets up a local test validator with validator vote accounts
+* `setup-stake-pool.sh`: creates a new stake pool with hardcoded parameters
+* `deposit-withdraw.sh`: performs some deposits and withdrawals
+
+The
+[CLI README](https://github.com/solana-labs/solana-program-library/tree/master/stake-pool/cli)
+contains more information about each of these scripts.
+
 ## Motivation
 
 This document is intended for the main actors of the stake pool system:
@@ -172,7 +193,7 @@ document are available at:
 ## Source
 
 The Stake Pool Program's source is available on
-[github](https://github.com/solana-labs/solana-program-library).
+[GitHub](https://github.com/solana-labs/solana-program-library).
 
 For information about the types and instructions, the Stake Pool Rust docs are
 available at [docs.rs](https://docs.rs/spl-stake-pool/0.5.0/spl_stake_pool/).
@@ -248,7 +269,7 @@ sets the fee on creation. Let's create a pool with a 3% fee and a maximum of 100
 validator stake accounts:
 
 ```console
-$ spl-stake-pool create-pool --fee-numerator 3 --fee-denominator 100 --max-validators 1000
+$ spl-stake-pool create-pool --epoch-fee-numerator 3 --epoch-fee-denominator 100 --max-validators 1000
 Creating reserve stake DVwDn4LTRztuai4QeenM6fyzgiwUGpVXVNZ1mgKE1Pyc
 Creating mint BoNneHKDrX9BHjjvSpPfnQyRjsnc9WFH71v8wrgCd7LB
 Creating associated token account DgyZrAq88bnG1TNRxpgDQzWXpzEurCvfY2ukKFWBvADQ to receive stake pool tokens of mint BoNneHKDrX9BHjjvSpPfnQyRjsnc9WFH71v8wrgCd7LB, owned by 4SnSuUtJGKvk2GYpBwmEsWG53zTurVM8yXGsoiZQyMJn
@@ -275,6 +296,43 @@ This account holds onto additional stake used when rebalancing between validator
 
 For a stake pool with 1000 validators, the cost to create a stake pool is less
 than 0.5 SOL.
+
+The `create-pool` command allows setting all of the accounts and keypairs to
+pre-generated values, including:
+
+* stake pool, through the `--pool-keypair` flag
+* validator list, through the `--validator-list-keypair` flag
+* pool token mint, through the `--mint-keypair` flag
+* pool reserve stake account, through the `--reserve-keypair` flag
+
+Otherwise, these will all default to newly-generated keypairs.
+
+You can always check out the available options by running `spl-stake-pool create-pool -h`.
+
+### Create a restricted stake pool
+
+If a manager would like to restrict deposits (stake and SOL) to one key in
+particular, they can set a deposit authority at creation:
+
+```console
+$ spl-stake-pool create-pool --epoch-fee-numerator 3 --epoch-fee-denominator 100 --max-validators 1000 --deposit-authority authority_keypair.json
+Creating reserve stake DVwDn4LTRztuai4QeenM6fyzgiwUGpVXVNZ1mgKE1Pyc
+Creating mint BoNneHKDrX9BHjjvSpPfnQyRjsnc9WFH71v8wrgCd7LB
+Creating associated token account DgyZrAq88bnG1TNRxpgDQzWXpzEurCvfY2ukKFWBvADQ to receive stake pool tokens of mint BoNneHKDrX9BHjjvSpPfnQyRjsnc9WFH71v8wrgCd7LB, owned by 4SnSuUtJGKvk2GYpBwmEsWG53zTurVM8yXGsoiZQyMJn
+Creating pool fee collection account DgyZrAq88bnG1TNRxpgDQzWXpzEurCvfY2ukKFWBvADQ
+Signature: qQwqahLuC24wPwVdgVXtd7v5htSSPDAH3JxFNmXCv9aDwjjqygQ64VMg3WdPCiNzc4Bn8vtS3qcnUVHVP5MbKgL
+Creating stake pool Zg5YBPAk8RqBR9kaLLSoN5C8Uv7nErBz1WC63HTsCPR
+Deposits will be restricted to 4SnSuUtJGKvk2GYpBwmEsWG53zTurVM8yXGsoiZQyMJn only, this can be changed using the set-funding-authority command.
+Signature: 5z6uH3EuPcujeWGpAjBtciSUR3TxtMBgWYU4ULagUso4QGzE9JenhYHwYthJ4b3rS57ByUNEXTr2BFyF5PjWC42Y
+```
+
+As the output says, the `set-funding-authority` can be used to modify or remove
+the deposit authority.
+
+As long as the deposit authority is set, SOL and stake deposits must be signed
+by `4SnSuUtJGKvk2GYpBwmEsWG53zTurVM8yXGsoiZQyMJn`, so no one else can participate
+in the pool. As mentioned earlier, this feature does not prohibit withdrawals,
+so anyone with pool tokens will still be able to withdraw from the pool.
 
 ### Set manager
 
@@ -734,23 +792,25 @@ Stake pools allow SOL withdrawals directly from the reserve and into a normal
 SOL wallet account, and in exchange burns the provided pool tokens.
 
 ```console
-$ spl-stake-pool withdraw-sol Zg5YBPAk8RqBR9kaLLSoN5C8Uv7nErBz1WC63HTsCPR 2
+$ spl-stake-pool withdraw-sol Zg5YBPAk8RqBR9kaLLSoN5C8Uv7nErBz1WC63HTsCPR 7VXPpSxneL6JLj18Naw2gkukXtjBZfbmPh18cnoUCMD8 2
 Signature: 4bqZKUUrjVspqTGqGqX4zxnHnJB67WbeukKUZRmxJ2yFmr275CtHPjZNzQJD9Pe7Q6mSxnUpcVv9FUdAbGP9RyBc
 ```
 
-The stake pool burned 2 pool tokens. In return, the stake pool sent SOL to the
-fee payer for the transaction.  You can check that the pool tokens have been burned:
+The stake pool has burned 2 pool tokens, and in return, sent SOL to
+`7VXPpSxneL6JLj18Naw2gkukXtjBZfbmPh18cnoUCMD8`.
+
+You can check that the pool tokens have been burned:
 
 ```console
 $ spl-token balance BoNneHKDrX9BHjjvSpPfnQyRjsnc9WFH71v8wrgCd7LB
 98.00000000
 ```
 
-And you can check that the fee payer has been credited:
+And you can check that the recipient has been credited:
 
 ```console
-$ solana balance
-49.660334743 SOL
+$ solana balance 7VXPpSxneL6JLj18Naw2gkukXtjBZfbmPh18cnoUCMD8
+2 SOL
 ```
 
 ### Deposit stake
@@ -788,12 +848,15 @@ Signature: 45x2UtA1b49eBPtRHdkvA3k8JneZzfwjptNN1kKQZaPABYiJ4hSA8qwi7qLNN5b3Fr4Z6
 ```
 
 The CLI will default to using the fee payer's
-[Associated Token Account](associated-token-account.md) for stake pool tokens.
+[Associated Token Account](associated-token-account.md) for stake pool tokens
+and the withdraw authority on the deposited stake account.
+
 Alternatively, you can create an SPL token account yourself and pass it as the
-`token-receiver` for the command.
+`token-receiver` for the command, and specify the withdraw authority on the
+stake account using the `withdraw-authority` flag.
 
 ```console
-$ spl-stake-pool deposit-stake Zg5YBPAk8RqBR9kaLLSoN5C8Uv7nErBz1WC63HTsCPR 97wBBiLVA7fUViEew8yV8R6tTdKithZDVz8LHLfF9sTJ --token-receiver 34XMHa3JUPv46ftU4dGHvemZ9oKVjnciRePYMcX3rjEF
+$ spl-stake-pool deposit-stake Zg5YBPAk8RqBR9kaLLSoN5C8Uv7nErBz1WC63HTsCPR 97wBBiLVA7fUViEew8yV8R6tTdKithZDVz8LHLfF9sTJ --token-receiver 34XMHa3JUPv46ftU4dGHvemZ9oKVjnciRePYMcX3rjEF --withdraw-authority authority.json
 Depositing stake 97wBBiLVA7fUViEew8yV8R6tTdKithZDVz8LHLfF9sTJ into stake pool account F8e8Ympp4MkDSPZdvRxdQUZXRkMBDdyqgHa363GShAPt
 Signature: 4AESGZzqBVfj5xQnMiPWAwzJnAtQDRFK1Ha6jqKKTs46Zm5fw3LqgU1mRAT6CKTywVfFMHZCLm1hcQNScSMwVvjQ
 ```
@@ -805,6 +868,22 @@ SPL token command-line utility.
 ```console
 $ spl-token balance BoNneHKDrX9BHjjvSpPfnQyRjsnc9WFH71v8wrgCd7LB
 10.00000000
+```
+
+#### Note on stake deposit fee
+
+Stake pools have separate fees for stake and SOL, so the total fee from depositing
+a stake account is calculated from the rent-exempt reserve as SOL, and the delegation
+as stake.
+
+For example, if a stake pool has a stake deposit fee of 1%, and a SOL deposit fee
+of 5%, and you deposit a stake account with 10 SOL in stake, and .00228288 SOL
+in rent-exemption, the total fee charged is:
+
+```
+total_fee = stake_delegation * stake_deposit_fee + rent_exemption * sol_deposit_fee
+total_fee = 10 * 1% + .00228288 * 5%
+total_fee = 0.100114144
 ```
 
 ### Update
@@ -900,7 +979,7 @@ source the pool tokens. It's possible to specify the SPL token account using
 the `--pool-account` flag.
 
 ```console
-$ spl-stake-pool withdraw Zg5YBPAk8RqBR9kaLLSoN5C8Uv7nErBz1WC63HTsCPR 5 --pool-account 34XMHa3JUPv46ftU4dGHvemZ9oKVjnciRePYMcX3rjEF
+$ spl-stake-pool withdraw-stake Zg5YBPAk8RqBR9kaLLSoN5C8Uv7nErBz1WC63HTsCPR 5 --pool-account 34XMHa3JUPv46ftU4dGHvemZ9oKVjnciRePYMcX3rjEF
 Withdrawing ◎5.000000000, or 5 pool tokens, from stake account 3k7Nwu9jUSc6SNG11wzufKYoZXRFgxWamheGLYWp5Rvx, delegated to EhRbKi4Vhm1oUCGWHiLEMYZqDrHwEd7Jgzgi26QJKvfQ
 Creating account to receive stake CZF2z3JJoDmJRcVjtsrz1BKUUGNL3VPW5FPFqge1bzmQ
 Signature: 2xBPVPJ749AE4hHNCNYdjuHv1EdMvxm9uvvraWfTA7Urrvecwh9w64URCyLLroLQ2RKDGE2QELM2ZHd8qRkjavJM
@@ -911,7 +990,7 @@ accounts in the pool. It's also possible to specify a specific vote account for
 the withdraw using the `--vote-account` flag.
 
 ```console
-$ spl-stake-pool withdraw Zg5YBPAk8RqBR9kaLLSoN5C8Uv7nErBz1WC63HTsCPR  --amount 5 --vote-account EhRbKi4Vhm1oUCGWHiLEMYZqDrHwEd7Jgzgi26QJKvfQ
+$ spl-stake-pool withdraw-stake Zg5YBPAk8RqBR9kaLLSoN5C8Uv7nErBz1WC63HTsCPR  --amount 5 --vote-account EhRbKi4Vhm1oUCGWHiLEMYZqDrHwEd7Jgzgi26QJKvfQ
 Withdrawing ◎5.000000000, or 5 pool tokens, from stake account 3k7Nwu9jUSc6SNG11wzufKYoZXRFgxWamheGLYWp5Rvx, delegated to EhRbKi4Vhm1oUCGWHiLEMYZqDrHwEd7Jgzgi26QJKvfQ
 Creating account to receive stake CZF2z3JJoDmJRcVjtsrz1BKUUGNL3VPW5FPFqge1bzmQ
 Signature: 2xBPVPJ749AE4hHNCNYdjuHv1EdMvxm9uvvraWfTA7Urrvecwh9w64URCyLLroLQ2RKDGE2QELM2ZHd8qRkjavJM
@@ -932,7 +1011,7 @@ reserve, but only if all of the validator stake accounts are at the minimum amou
 `0.001 SOL + stake account rent exemption`.
 
 ```console
-$ spl-stake-pool withdraw Zg5YBPAk8RqBR9kaLLSoN5C8Uv7nErBz1WC63HTsCPR 5 --use-reserve
+$ spl-stake-pool withdraw-stake Zg5YBPAk8RqBR9kaLLSoN5C8Uv7nErBz1WC63HTsCPR 5 --use-reserve
 Withdrawing ◎5.000000000, or 5 pool tokens, from stake account J5XB7mWpeaUZxZ6ogXT57qSCobczx27vLZYSgfSbZoBB
 Creating account to receive stake 51XdXiBSsVzeuY79xJwWAGZgeKzzgFKWajkwvWyrRiNE
 Signature: yQH9n7Go6iCMEYXqWef38ZYBPwXDmbwKAJFJ4EHD6TusBpusKsfNuT3TV9TL8FmxR2N9ExZTZwbD9Njc3rMvUcf

@@ -2,19 +2,19 @@
 
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
+    clock::Clock,
     entrypoint::ProgramResult,
     pubkey::Pubkey,
+    sysvar::Sysvar,
 };
+use spl_governance_tools::account::dispose_account;
 
-use crate::{
-    state::{
-        enums::{ProposalState, VoteWeight},
-        governance::get_governance_data,
-        proposal::get_proposal_data_for_governance_and_governing_mint,
-        token_owner_record::get_token_owner_record_data_for_realm_and_governing_mint,
-        vote_record::get_vote_record_data_for_proposal_and_token_owner,
-    },
-    tools::account::dispose_account,
+use crate::state::{
+    enums::{ProposalState, VoteWeight},
+    governance::get_governance_data,
+    proposal::get_proposal_data_for_governance_and_governing_mint,
+    token_owner_record::get_token_owner_record_data_for_realm_and_governing_mint,
+    vote_record::get_vote_record_data_for_proposal_and_token_owner,
 };
 
 use borsh::BorshSerialize;
@@ -54,8 +54,14 @@ pub fn process_relinquish_vote(program_id: &Pubkey, accounts: &[AccountInfo]) ->
     )?;
     vote_record_data.assert_can_relinquish_vote()?;
 
-    // If the Proposal is still being voted on then the token owner vote won't count towards the outcome
-    if proposal_data.state == ProposalState::Voting {
+    let clock = Clock::get()?;
+
+    // If the Proposal is still being voted on then the token owner vote will be withdrawn and it won't count towards the vote outcome
+    // Note: If there is no tipping point the proposal can be still in Voting state but already past the configured max_voting_time
+    //       It means it awaits manual finalization (FinalizeVote) and it should no longer be possible to withdraw the vote and we only release the tokens
+    if proposal_data.state == ProposalState::Voting
+        && !proposal_data.has_vote_time_ended(&governance_data.config, clock.unix_timestamp)
+    {
         let governance_authority_info = next_account_info(account_info_iter)?; // 5
         let beneficiary_info = next_account_info(account_info_iter)?; // 6
 
