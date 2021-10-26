@@ -6,8 +6,13 @@ import time
 import datetime
 
 
+api_endpoint = "https://api.testnet.solana.com/"
+AIRDROP_AMT = 1
 #api_endpoint = "https://api.devnet.solana.com/"
-api_endpoint = "http://127.0.0.1:8899"
+#AIRDROP_AMT = 5
+#api_endpoint = "http://127.0.0.1:8899"
+#AIRDROP_AMT = 1000
+
 balance_data = []
 
 def await_confirmation(client, txn):
@@ -73,7 +78,9 @@ client = Client(api_endpoint)
 opts = types.TxOpts()
 resp = {}
 while 'result' not in resp:
-    resp = client.request_airdrop(account.public_key(), int(1e10))
+    resp = client.request_airdrop(account.public_key(), int(AIRDROP_AMT)) #TestNet
+    #resp = client.request_airdrop(account.public_key(), int(5)) #DevNet
+    #resp = client.request_airdrop(account.public_key(), int(100)) #LocalNet
 txn = resp['result']
 await_confirmation(client, txn)
 
