@@ -4,14 +4,15 @@ import time
 from spl.token.client import Token
 import time
 import datetime
+from solana.keypair import Keypair
 
 
-api_endpoint = "https://api.testnet.solana.com/"
-AIRDROP_AMT = 1
+#api_endpoint = "https://api.testnet.solana.com/"
+#AIRDROP_AMT = 1
 #api_endpoint = "https://api.devnet.solana.com/"
 #AIRDROP_AMT = 5
-#api_endpoint = "http://127.0.0.1:8899"
-#AIRDROP_AMT = 1000
+api_endpoint = "http://127.0.0.1:8899"
+AIRDROP_AMT = 1000
 
 balance_data = []
 
@@ -49,27 +50,27 @@ def update_and_print_state():
         state["N"] = 1
         state["c"] = pool_data["circulation"] 
         state["e_A"] = get_account(pool_data["escrow"]).amount
-        state["a1_LT"] = get_ata(str(a1.public_key()), pool_data['long_mint']).amount
-        state["a1_ST"] = get_ata(str(a1.public_key()), pool_data['short_mint']).amount
-        state["a1_A"] =  get_ata(str(a1.public_key()), pool_data['escrow_mint']).amount
-        state["a2_LT"] = get_ata(str(a2.public_key()), pool_data['long_mint']).amount
-        state["a2_ST"] = get_ata(str(a2.public_key()), pool_data['short_mint']).amount
-        state["a2_A"] =  get_ata(str(a2.public_key()), pool_data['escrow_mint']).amount
-        state["a3_LT"] = get_ata(str(a3.public_key()), pool_data['long_mint']).amount
-        state["a3_ST"] = get_ata(str(a3.public_key()), pool_data['short_mint']).amount
-        state["a3_A"] =  get_ata(str(a3.public_key()), pool_data['escrow_mint']).amount
+        state["a1_LT"] = get_ata(str(a1.public_key), pool_data['long_mint']).amount
+        state["a1_ST"] = get_ata(str(a1.public_key), pool_data['short_mint']).amount
+        state["a1_A"] =  get_ata(str(a1.public_key), pool_data['escrow_mint']).amount
+        state["a2_LT"] = get_ata(str(a2.public_key), pool_data['long_mint']).amount
+        state["a2_ST"] = get_ata(str(a2.public_key), pool_data['short_mint']).amount
+        state["a2_A"] =  get_ata(str(a2.public_key), pool_data['escrow_mint']).amount
+        state["a3_LT"] = get_ata(str(a3.public_key), pool_data['long_mint']).amount
+        state["a3_ST"] = get_ata(str(a3.public_key), pool_data['short_mint']).amount
+        state["a3_A"] =  get_ata(str(a3.public_key), pool_data['escrow_mint']).amount
     except:
         pass
     balance_data.append(state)
     print(pd.DataFrame(balance_data).fillna(0).astype(int))
 
 
-account = Account()
+account = Keypair()
 
 bp = BinaryOption(
     {
-        'PRIVATE_KEY': base58.b58encode(account.secret_key()).decode('ascii'),
-        'PUBLIC_KEY': str(account.public_key()),
+        'PRIVATE_KEY': base58.b58encode(account.secret_key).decode('ascii'),
+        'PUBLIC_KEY': str(account.public_key),
         'DECRYPTION_KEY': Fernet.generate_key(),
     }
 )
@@ -78,30 +79,20 @@ client = Client(api_endpoint)
 opts = types.TxOpts()
 resp = {}
 while 'result' not in resp:
-    resp = client.request_airdrop(account.public_key(), int(AIRDROP_AMT)) #TestNet
-    #resp = client.request_airdrop(account.public_key(), int(5)) #DevNet
-    #resp = client.request_airdrop(account.public_key(), int(100)) #LocalNet
+    resp = client.request_airdrop(account.public_key, int(AIRDROP_AMT)) 
 txn = resp['result']
 await_confirmation(client, txn)
 
-a1 = Account() 
-a2 = Account()
-a3 = Account()
-ek1 = bp.cipher.encrypt(a1.secret_key())
-ek2 = bp.cipher.encrypt(a2.secret_key())
-ek3 = bp.cipher.encrypt(a3.secret_key())
-
-tu1 = json.loads(bp.topup(api_endpoint, str(a1.public_key())))
-print(tu1)
-tu2 = json.loads(bp.topup(api_endpoint, str(a2.public_key())))
-print(tu2)
-tu3 = json.loads(bp.topup(api_endpoint, str(a3.public_key())))
-print(tu3)
-
+a1 = Keypair() 
+a2 = Keypair()
+a3 = Keypair()
+ek1 = bp.cipher.encrypt(a1.secret_key)
+ek2 = bp.cipher.encrypt(a2.secret_key)
+ek3 = bp.cipher.encrypt(a3.secret_key)
 
 token = Token.create_mint(
     client,
-    Account(bp.private_key),
+    Keypair(bp.private_key),
     PublicKey(bp.public_key),
     0,
     PublicKey(TOKEN_PROGRAM_ID),
@@ -119,6 +110,13 @@ res = json.loads(bp.initialize(api_endpoint, mint,decimals, expiry,strike,expone
 print(res)
 
 pool = res.get("binary_option")
+
+tu1 = json.loads(bp.topup(api_endpoint, str(a1.public_key())))
+print(tu1)
+tu2 = json.loads(bp.topup(api_endpoint, str(a2.public_key())))
+print(tu2)
+tu3 = json.loads(bp.topup(api_endpoint, str(a3.public_key())))
+print(tu3)
 print(bp.mint_to(api_endpoint, pool, str(a1.public_key()), 1e6, skip_confirmation=False))
 print(bp.mint_to(api_endpoint, pool, str(a2.public_key()), 1e6, skip_confirmation=False))
 print(bp.mint_to(api_endpoint, pool, str(a3.public_key()), 1e6, skip_confirmation=False))
