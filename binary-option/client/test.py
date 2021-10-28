@@ -5,14 +5,15 @@ from spl.token.client import Token
 import time
 import datetime
 from solana.keypair import Keypair
+from solana.publickey import PublicKey
 
 
 #api_endpoint = "https://api.testnet.solana.com/"
-#AIRDROP_AMT = 1
+#AIRDROP_AMT = 1000000000
 #api_endpoint = "https://api.devnet.solana.com/"
-#AIRDROP_AMT = 5
+#AIRDROP_AMT = 5000000000
 api_endpoint = "http://127.0.0.1:8899"
-AIRDROP_AMT = 1000
+AIRDROP_AMT = 100000000000
 
 balance_data = []
 
@@ -79,7 +80,7 @@ client = Client(api_endpoint)
 opts = types.TxOpts()
 resp = {}
 while 'result' not in resp:
-    resp = client.request_airdrop(account.public_key, int(AIRDROP_AMT)) 
+    resp = client.request_airdrop(PublicKey(account.public_key), int(AIRDROP_AMT)) 
 txn = resp['result']
 await_confirmation(client, txn)
 
@@ -89,6 +90,13 @@ a3 = Keypair()
 ek1 = bp.cipher.encrypt(a1.secret_key)
 ek2 = bp.cipher.encrypt(a2.secret_key)
 ek3 = bp.cipher.encrypt(a3.secret_key)
+
+tu1 = json.loads(bp.topup(api_endpoint, str(a1.public_key)))
+print(tu1)
+tu2 = json.loads(bp.topup(api_endpoint, str(a2.public_key)))
+print(tu2)
+tu3 = json.loads(bp.topup(api_endpoint, str(a3.public_key)))
+print(tu3)
 
 token = Token.create_mint(
     client,
@@ -100,26 +108,21 @@ token = Token.create_mint(
     skip_confirmation=False,
 )
 
-mint = str(token.pubkey)
+mint = (token.pubkey)
 expiry = int(time.time() + 2000)
-strike = 12100
-exponent = -2
-decimals = 2
+strike = 56700
+exponent = 5
+decimals = 3
 underlying_asset_address = "4aDoSXJ5o3AuvL7QFeR6h44jALQfTmUUCTVGDD6aoJTM"
 res = json.loads(bp.initialize(api_endpoint, mint,decimals, expiry,strike,exponent, skip_confirmation=False))
 print(res)
 
 pool = res.get("binary_option")
 
-tu1 = json.loads(bp.topup(api_endpoint, str(a1.public_key())))
-print(tu1)
-tu2 = json.loads(bp.topup(api_endpoint, str(a2.public_key())))
-print(tu2)
-tu3 = json.loads(bp.topup(api_endpoint, str(a3.public_key())))
-print(tu3)
-print(bp.mint_to(api_endpoint, pool, str(a1.public_key()), 1e6, skip_confirmation=False))
-print(bp.mint_to(api_endpoint, pool, str(a2.public_key()), 1e6, skip_confirmation=False))
-print(bp.mint_to(api_endpoint, pool, str(a3.public_key()), 1e6, skip_confirmation=False))
+
+print(bp.mint_to(api_endpoint, pool, (a1.public_key), 1e6, skip_confirmation=False))
+print(bp.mint_to(api_endpoint, pool, (a2.public_key), 1e6, skip_confirmation=False))
+print(bp.mint_to(api_endpoint, pool, (a3.public_key), 1e6, skip_confirmation=False))
 
 pool_data = bp.load_binary_option(api_endpoint, pool)
 
@@ -142,7 +145,7 @@ update_and_print_state()
 
 long_mint = pool_data['long_mint']
 print(bp.settle(api_endpoint, pool, long_mint, skip_confirmation=False))
-print(bp.collect(api_endpoint, pool, a1.public_key(), skip_confirmation=False))
-print(bp.collect(api_endpoint, pool, a2.public_key(), skip_confirmation=False))
-print(bp.collect(api_endpoint, pool, a3.public_key(), skip_confirmation=False))
+print(bp.collect(api_endpoint, pool, a1.public_key, skip_confirmation=False))
+print(bp.collect(api_endpoint, pool, a2.public_key, skip_confirmation=False))
+print(bp.collect(api_endpoint, pool, a3.public_key, skip_confirmation=False))
 update_and_print_state()

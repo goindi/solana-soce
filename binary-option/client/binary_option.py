@@ -6,8 +6,9 @@ import base58
 import struct
 
 from solana.publickey import PublicKey 
+from solana.keypair import Keypair
 from solana.transaction import Transaction, AccountMeta, TransactionInstruction
-from solana.account import Account 
+#from solana.account import Account 
 from solana.rpc.api import Client
 import solana.rpc.types as types
 from solana.system_program import transfer, TransferParams
@@ -16,6 +17,7 @@ from spl.token.instructions import (
     get_associated_token_address, create_associated_token_account,
     mint_to, MintToParams,
 )
+
 
 SYSTEM_PROGRAM_ID = '11111111111111111111111111111111'
 SYSVAR_RENT_ID = 'SysvarRent111111111111111111111111111111111'
@@ -168,20 +170,20 @@ class BinaryOption():
         client = Client(api_endpoint)
         msg += "Initialized client"
         # Create account objects
-        source_account = Account(self.private_key)
-        pool = Account()
-        long_escrow = Account()
-        short_escrow = Account()
-        long_mint = Account()
-        short_mint = Account()
+        source_account = Keypair(self.private_key)
+        pool = Keypair()
+        long_escrow = Keypair()
+        short_escrow = Keypair()
+        long_mint = Keypair()
+        short_mint = Keypair()
         # List non-derived accounts
-        pool_account = pool.public_key()
+        pool_account = pool.public_key
         escrow_mint_account = PublicKey(escrow_mint)
-        escrow_account = long_escrow.public_key()
-        long_token_mint_account = long_mint.public_key()
-        short_token_mint_account = short_mint.public_key()
-        mint_authority_account = source_account.public_key()
-        update_authority_account = source_account.public_key()
+        escrow_account = long_escrow.public_key
+        long_token_mint_account = long_mint.public_key
+        short_token_mint_account = short_mint.public_key
+        mint_authority_account = source_account.public_key
+        update_authority_account = source_account.public_key
         token_account = PublicKey(TOKEN_PROGRAM_ID)
         system_account = PublicKey(SYSTEM_PROGRAM_ID)
         rent_account = PublicKey(SYSVAR_RENT_ID)
@@ -202,10 +204,10 @@ class BinaryOption():
             token_account,
             system_account,
             rent_account,
-            decimals,
+            int(decimals),
             int(expiry),
-            strike,
-            strike_exponent,
+            int(strike),
+            int(strike_exponent),
             #underlying_asset_address,
         )
         tx = tx.add(init_binary_option_ix)
@@ -213,12 +215,13 @@ class BinaryOption():
         # Send request
         try:
             response = client.send_transaction(tx, *signers, opts=types.TxOpts(skip_confirmation=skip_confirmation))
+            print(response)
             return json.dumps(
                 {
                     'status': HTTPStatus.OK,
                     'binary_option': str(pool_account),
                     'msg': msg + f" | Successfully created binary option {str(pool_account)}",
-                    'tx': response.get('result') if skip_confirmation else response['result']['transaction']['signatures'],
+                    'tx': response.get('result') if skip_confirmation else response['result'],
                 }
             )
         except Exception as e:
@@ -235,9 +238,9 @@ class BinaryOption():
         seller_private_key = list(self.cipher.decrypt(seller_encrypted_private_key))
         assert(len(buyer_private_key) == 32)
         assert(len(seller_private_key) == 32)
-        source_account = Account(self.private_key)
-        buyer = Account(buyer_private_key)
-        seller = Account(seller_private_key)
+        source_account = Keypair(self.private_key)
+        buyer = Keypair(buyer_private_key)
+        seller = Keypair(seller_private_key)
         # Signers
         signers = [buyer, seller, source_account]
         pool = self.load_binary_option(api_endpoint, pool_account)
@@ -247,8 +250,8 @@ class BinaryOption():
         escrow_mint_account = PublicKey(pool["escrow_mint"]) 
         long_token_mint_account = PublicKey(pool["long_mint"]) 
         short_token_mint_account = PublicKey(pool["short_mint"]) 
-        buyer_account = buyer.public_key()
-        seller_account = seller.public_key()
+        buyer_account = buyer.public_key
+        seller_account = seller.public_key
         token_account = PublicKey(TOKEN_PROGRAM_ID)
         escrow_owner_account = PublicKey.find_program_address(
             [bytes(long_token_mint_account), bytes(short_token_mint_account), bytes(token_account), bytes(PublicKey(BINARY_OPTION_PROGRAM_ID))],
@@ -270,7 +273,7 @@ class BinaryOption():
                 if account_state == 0:
                     msg += f" | Creating PDA: {token_pda_address}"
                     associated_token_account_ix = create_associated_token_account(
-                        payer=source_account.public_key(),
+                        payer=source_account.public_key,
                         owner=acct,
                         mint=mint_account,
                     )
@@ -318,7 +321,7 @@ class BinaryOption():
     #     client = Client(api_endpoint)
     #     msg += "Initialized client"
     #     # Create account objects
-    #     source_account = Account(self.private_key)
+    #     source_account = Keypair(self.private_key)
     #     # Signers
     #     signers = [source_account]
     #     # List non-derived accounts
@@ -328,7 +331,7 @@ class BinaryOption():
     #     settle_ix = settle_instruction(
     #         pool_account,
     #         winning_mint_account,
-    #         source_account.public_key(),
+    #         source_account.public_key,
     #     )
     #     tx = tx.add(settle_ix)
     #     # Send request
@@ -350,7 +353,7 @@ class BinaryOption():
         client = Client(api_endpoint)
         msg += "Initialized client"
         # Create account objects
-        source_account = Account(self.private_key)
+        source_account = Keypair(self.private_key)
         # Signers
         signers = [source_account]
         # List non-derived accounts
@@ -362,7 +365,7 @@ class BinaryOption():
             pool_account,
             long_mint_account,
             short_mint_account,
-            source_account.public_key(),
+            source_account.public_key,
         )
         tx = tx.add(settle_ix)
         # Send request
@@ -384,7 +387,7 @@ class BinaryOption():
         msg = ""
         client = Client(api_endpoint)
         msg += "Initialized client"
-        signers = [Account(self.private_key)]
+        signers = [Keypair(self.private_key)]
         pool = self.load_binary_option(api_endpoint, pool_account)
         pool_account = PublicKey(pool_account) 
         collector_account = PublicKey(collector)
@@ -460,11 +463,11 @@ class BinaryOption():
         pool["decimals"] = raw_bytes[i] 
         i += 1
         pool["expiry"] = raw_bytes[i]
-        i += 8
+        i += 1
         pool["strike"] = raw_bytes[i]
-        i += 8
+        i += 1
         pool["strike_exponent"] = raw_bytes[i]
-        i += 8
+        i += 1
         pool["circulation"] = raw_bytes[i] 
         i += 1
         pool["settled"] = raw_bytes[i] 
@@ -493,7 +496,7 @@ class BinaryOption():
             client = Client(api_endpoint)
             msg += "Initialized client"
             # List accounts 
-            sender_account = Account(self.private_key)
+            sender_account = Keypair(self.private_key)
             dest_account = PublicKey(to)
             msg += " | Gathered accounts"
             # List signers
@@ -512,7 +515,7 @@ class BinaryOption():
                 msg += " | ERROR: couldn't process lamports" 
                 raise(e)
             # Generate transaction
-            transfer_ix = transfer(TransferParams(from_pubkey=sender_account.public_key(), to_pubkey=dest_account, lamports=lamports))
+            transfer_ix = transfer(TransferParams(from_pubkey=sender_account.public_key, to_pubkey=dest_account, lamports=lamports))
             tx = tx.add(transfer_ix)
             msg += f" | Transferring funds"
             # Send request
@@ -541,15 +544,15 @@ class BinaryOption():
         client = Client(api_endpoint)
         msg += "Initialized client"
         # Create account objects
-        source_account = Account(self.private_key)
+        source_account = Keypair(self.private_key)
         signers = [source_account]
         pool = self.load_binary_option(api_endpoint, pool_account)
         # List non-derived accounts
         pool_account = PublicKey(pool_account) 
         dest_account = PublicKey(dest)
         escrow_mint_account = PublicKey(pool["escrow_mint"]) 
-        mint_authority_account = source_account.public_key()
-        payer_account = source_account.public_key()
+        mint_authority_account = source_account.public_key
+        payer_account = source_account.public_key
         token_account = PublicKey(TOKEN_PROGRAM_ID)
         tx = Transaction()
         token_pda_address = get_associated_token_address(dest_account, escrow_mint_account)
@@ -559,6 +562,7 @@ class BinaryOption():
             mint=escrow_mint_account,
         )
         tx = tx.add(associated_token_account_ix)
+        print(f"{token_account} | {escrow_mint_account} | {token_pda_address} | {mint_authority_account} | {[mint_authority_account]}")
         mint_to_ix = mint_to(
             MintToParams(
                 program_id=token_account,
@@ -577,7 +581,7 @@ class BinaryOption():
                 {
                     'status': HTTPStatus.OK,
                     'msg': msg + f" | MintTo {dest} successful",
-                    'tx': response.get('result') if skip_confirmation else response['result']['transaction']['signatures'],
+                    'tx': response.get('result') if skip_confirmation else response['result'],
                 }
             )
         except Exception as e:

@@ -40,6 +40,16 @@ impl Processor {
         match instruction {
             BinaryOptionInstruction::InitializeBinaryOption(args) => {
                 msg!("Instruction: InitializeBinaryOption");
+                msg!("++++++++++++++++++");
+                let s0: String = (args.decimals).to_string();
+                let s1: String = (args.expiry).to_string();
+                let s2: String = (args.strike).to_string();
+                let s3: String = (args.strike_exponent).to_string();
+                msg!(&s0);
+                msg!(&s1);
+                msg!(&s2);
+                msg!(&s3);
+              // msg!(" *****at Match Decimals:{} | expiry:{} | strike:{} | strike_exponent{}",&s0,&s1,&s2,&s3);
                 process_initialize_binary_option(
                     program_id, 
                     accounts, 
@@ -197,10 +207,20 @@ pub fn process_initialize_binary_option(
     msg!("**********Reached Here 2*************");
     binary_option.decimals = decimals;
     binary_option.expiry = expiry;
-    binary_option.circulation = 0;
-    binary_option.settled = false;
     binary_option.strike = strike;
     binary_option.strike_exponent = strike_exponent;
+    binary_option.circulation = 0;
+    binary_option.settled = false;
+    msg!("##########");
+    let s0: String = (decimals).to_string();
+    let s1: String = (expiry).to_string();
+    let s2: String = (strike).to_string();
+    let s3: String = (strike_exponent).to_string();
+    msg!(&s0);
+    msg!(&s1);
+    msg!(&s2);
+    msg!(&s3);
+    
     //binary_option.underlying_asset_address = underlying_asset_address;
 
     binary_option.long_mint_account_pubkey = *long_token_mint_info.key;
