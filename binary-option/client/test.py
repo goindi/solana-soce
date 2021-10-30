@@ -10,10 +10,10 @@ from solana.publickey import PublicKey
 
 #api_endpoint = "https://api.testnet.solana.com/"
 #AIRDROP_AMT = 1000000000
-#api_endpoint = "https://api.devnet.solana.com/"
-#AIRDROP_AMT = 5000000000
-api_endpoint = "http://127.0.0.1:8899"
-AIRDROP_AMT = 100000000000
+api_endpoint = "https://api.devnet.solana.com/"
+AIRDROP_AMT = 5000000000
+#api_endpoint = "http://127.0.0.1:8899"
+#AIRDROP_AMT = 100000000000
 
 balance_data = []
 

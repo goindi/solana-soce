@@ -234,8 +234,8 @@ class BinaryOption():
         client = Client(api_endpoint)
         msg += "Initialized client"
         # Create account objects
-        buyer_private_key = list(self.cipher.decrypt(buyer_encrypted_private_key))
-        seller_private_key = list(self.cipher.decrypt(seller_encrypted_private_key))
+        buyer_private_key = list(self.cipher.decrypt(buyer_encrypted_private_key))[:32]
+        seller_private_key = list(self.cipher.decrypt(seller_encrypted_private_key))[:32]
         assert(len(buyer_private_key) == 32)
         assert(len(seller_private_key) == 32)
         source_account = Keypair(self.private_key)
