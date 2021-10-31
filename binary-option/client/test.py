@@ -10,10 +10,10 @@ from solana.publickey import PublicKey
 
 #api_endpoint = "https://api.testnet.solana.com/"
 #AIRDROP_AMT = 1000000000
-#api_endpoint = "https://api.devnet.solana.com/"
-#AIRDROP_AMT = 5000000000
-api_endpoint = "http://127.0.0.1:8899"
-AIRDROP_AMT = 100000000000
+api_endpoint = "https://api.devnet.solana.com/"
+AIRDROP_AMT = 5000000000
+#api_endpoint = "http://127.0.0.1:8899"
+#AIRDROP_AMT = 100000000000
 
 balance_data = []
 
@@ -145,7 +145,7 @@ update_and_print_state()
 
 long_mint = pool_data['long_mint']
 short_mint = pool_data['short_mint']
-print(bp.settle(api_endpoint, pool, long_mint, skip_confirmation=False))
+print(bp.settle(api_endpoint, pool, long_mint,short_mint, skip_confirmation=False))
 print(bp.collect(api_endpoint, pool, a1.public_key, skip_confirmation=False))
 print(bp.collect(api_endpoint, pool, a2.public_key, skip_confirmation=False))
 print(bp.collect(api_endpoint, pool, a3.public_key, skip_confirmation=False))
