@@ -309,7 +309,7 @@ class BinaryOption():
                 {
                     'status': HTTPStatus.OK,
                     'msg': msg + f" | Trade successful",
-                    'tx': response.get('result') if skip_confirmation else response['result']['transaction']['signatures'],
+                    'tx': response.get('result') if skip_confirmation else response['result'],
                 }
             )
         except Exception as e:
@@ -375,7 +375,7 @@ class BinaryOption():
                 {
                     'status': HTTPStatus.OK,
                     'msg': msg + f" | Settle successful, winner",
-                    'tx': response.get('result') if skip_confirmation else response['result']['transaction']['signatures'],
+                    'tx': response.get('result') if skip_confirmation else response['result'],
                 }
             )
         except Exception as e:
@@ -436,7 +436,7 @@ class BinaryOption():
                 {
                     'status': HTTPStatus.OK,
                     'msg': msg + f" | Collect successful",
-                    'tx': response.get('result') if skip_confirmation else response['result']['transaction']['signatures'],
+                    'tx': response.get('result') if skip_confirmation else response['result'],
                 }
             )
         except Exception as e:

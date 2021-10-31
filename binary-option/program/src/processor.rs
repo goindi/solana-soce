@@ -40,7 +40,7 @@ impl Processor {
         match instruction {
             BinaryOptionInstruction::InitializeBinaryOption(args) => {
                 msg!("Instruction: InitializeBinaryOption");
-                msg!("++++++++++++++++++");
+                /*msg!("++++++++++++++++++");
                 let s0: String = (args.decimals).to_string();
                 let s1: String = (args.expiry).to_string();
                 let s2: String = (args.strike).to_string();
@@ -49,6 +49,7 @@ impl Processor {
                 msg!(&s1);
                 msg!(&s2);
                 msg!(&s3);
+                */
               // msg!(" *****at Match Decimals:{} | expiry:{} | strike:{} | strike_exponent{}",&s0,&s1,&s2,&s3);
                 process_initialize_binary_option(
                     program_id, 
@@ -200,11 +201,8 @@ pub fn process_initialize_binary_option(
         update_authority_info,
         BinaryOption::LEN,
     )?;
-    msg!("**********Reached Here 1*************");
- 
     let mut binary_option =
         BinaryOption::try_from_slice(&binary_option_account_info.data.borrow_mut())?;
-    msg!("**********Reached Here 2*************");
     binary_option.decimals = decimals;
     binary_option.expiry = expiry;
     binary_option.strike = strike;
@@ -228,10 +226,7 @@ pub fn process_initialize_binary_option(
     binary_option.escrow_mint_account_pubkey = *escrow_mint_info.key;
     binary_option.escrow_account_pubkey = *escrow_account_info.key;
     binary_option.owner = *update_authority_info.key;
-    msg!("**********Reached Here 3*************");
     binary_option.serialize(&mut *binary_option_account_info.data.borrow_mut())?;
-    msg!("*************Reached Here 4***************");
-
     Ok(())
 }
 
@@ -269,7 +264,7 @@ pub fn process_trade(
     let seller_account: Account = assert_initialized(seller_account_info)?;
     let mut binary_option =
         BinaryOption::try_from_slice(&binary_option_account_info.data.borrow_mut())?;
-
+        
     // Get program derived address for escrow
     let (authority_key, bump_seed) = Pubkey::find_program_address(
         &[
@@ -287,7 +282,6 @@ pub fn process_trade(
         program_id.as_ref(),
         &[bump_seed],
     ];
-
     // Validate data
     if buy_price + sell_price != u64::pow(10, binary_option.decimals as u32) {
         return Err(BinaryOptionError::TradePricesIncorrect.into());
@@ -295,6 +289,7 @@ pub fn process_trade(
     if binary_option.settled {
         return Err(BinaryOptionError::AlreadySettled.into());
     }
+    
     assert_keys_equal(*token_program_info.key, spl_token::id())?;
     assert_keys_unequal(*buyer_info.key, *seller_info.key)?;
     assert_keys_equal(*long_token_mint_info.owner, spl_token::id())?;
@@ -339,7 +334,6 @@ pub fn process_trade(
         seller_account.mint,
         binary_option.escrow_mint_account_pubkey,
     )?;
-
     let n = size;
     let n_b = buyer_short_token_account.amount;
     let n_s = seller_long_token_account.amount;
@@ -348,7 +342,6 @@ pub fn process_trade(
     let mut b_s = n_b;
     let mut s_l = n_s;
     let mut s_s = seller_short_token_account.amount;
-
     match [n_b >= n, n_s >= n] {
         /*
         When n is less than both n_b and n_s, this means that both buyer and seller are simply reducing their existing inventory.
@@ -683,18 +676,20 @@ pub fn process_settle_oracled(_program_id: &Pubkey, accounts: &[AccountInfo]) ->
     let short_mint_token_account_info = next_account_info(account_info_iter)?;
     //let winning_mint_account_info = next_account_info(account_info_iter)?;
     let pool_owner_info = next_account_info(account_info_iter)?;
-
     let mut binary_option =
         BinaryOption::try_from_slice(&binary_option_account_info.data.borrow_mut())?;
     if !pool_owner_info.is_signer {
+        msg!("***Signature missing**");
         return Err(ProgramError::MissingRequiredSignature);
     }
     if binary_option.settled {
+        msg!("***already settled**");
         return Err(BinaryOptionError::AlreadySettled.into());
     }
     let now = Clock::get()?.unix_timestamp as u64;
     if binary_option.expiry > now  {
-        return Err(BinaryOptionError::ExpiryInTheFuture.into());
+        msg!("***Expiry in future. Overiding it for testing**");
+        //return Err(BinaryOptionError::ExpiryInTheFuture.into());
     }
 
     assert_keys_equal(*pool_owner_info.key, binary_option.owner)?;

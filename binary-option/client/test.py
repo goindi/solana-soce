@@ -10,10 +10,10 @@ from solana.publickey import PublicKey
 
 #api_endpoint = "https://api.testnet.solana.com/"
 #AIRDROP_AMT = 1000000000
-api_endpoint = "https://api.devnet.solana.com/"
-AIRDROP_AMT = 5000000000
-#api_endpoint = "http://127.0.0.1:8899"
-#AIRDROP_AMT = 100000000000
+#api_endpoint = "https://api.devnet.solana.com/"
+#AIRDROP_AMT = 5000000000
+api_endpoint = "http://127.0.0.1:8899"
+AIRDROP_AMT = 100000000000
 
 balance_data = []
 
@@ -112,7 +112,7 @@ mint = (token.pubkey)
 expiry = int(time.time() + 2000)
 strike = 56700
 exponent = 5
-decimals = 3
+decimals = 2
 underlying_asset_address = "4aDoSXJ5o3AuvL7QFeR6h44jALQfTmUUCTVGDD6aoJTM"
 res = json.loads(bp.initialize(api_endpoint, mint,decimals, expiry,strike,exponent, skip_confirmation=False))
 print(res)
@@ -144,6 +144,7 @@ print(bp.trade(api_endpoint, pool, ek3, ek1, 1, 50, 50, skip_confirmation=False)
 update_and_print_state()
 
 long_mint = pool_data['long_mint']
+short_mint = pool_data['short_mint']
 print(bp.settle(api_endpoint, pool, long_mint, skip_confirmation=False))
 print(bp.collect(api_endpoint, pool, a1.public_key, skip_confirmation=False))
 print(bp.collect(api_endpoint, pool, a2.public_key, skip_confirmation=False))
