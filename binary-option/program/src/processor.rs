@@ -40,7 +40,7 @@ impl Processor {
         match instruction {
             BinaryOptionInstruction::InitializeBinaryOption(args) => {
                 msg!("Instruction: InitializeBinaryOption");
-                /*msg!("++++++++++++++++++");
+                msg!("++++++++++++++++++");
                 let s0: String = (args.decimals).to_string();
                 let s1: String = (args.expiry).to_string();
                 let s2: String = (args.strike).to_string();
@@ -49,7 +49,7 @@ impl Processor {
                 msg!(&s1);
                 msg!(&s2);
                 msg!(&s3);
-                */
+                
               // msg!(" *****at Match Decimals:{} | expiry:{} | strike:{} | strike_exponent{}",&s0,&s1,&s2,&s3);
                 process_initialize_binary_option(
                     program_id, 
@@ -57,8 +57,7 @@ impl Processor {
                     args.decimals, 
                     args.expiry, 
                     args.strike,
-                    args.strike_exponent,
-                   // args.underlying_asset_address
+                    args.strike_exponent
                 )
             }
             BinaryOptionInstruction::Trade(args) => {
@@ -93,15 +92,15 @@ pub fn process_initialize_binary_option(
     decimals: u8,
     expiry: u64,
     strike: u64,
-    strike_exponent: i64,
-   // underlying_asset_address: String,
+    strike_exponent: u64,
+    
 ) -> ProgramResult {
     //Check to make sure you are not initializing an option that has already expired
    /* let now = Clock::get()?.unix_timestamp as u64;
     if expiry < now{
         return Err(BinaryOptionError::ExpiryInThePast.into());
     }*/
-
+    msg!("****INDSIDE BEGIN******");
     let account_info_iter = &mut accounts.iter();
     let binary_option_account_info = next_account_info(account_info_iter)?;
     let escrow_mint_info = next_account_info(account_info_iter)?;
@@ -113,7 +112,18 @@ pub fn process_initialize_binary_option(
     let token_program_info = next_account_info(account_info_iter)?;
     let system_account_info = next_account_info(account_info_iter)?;
     let rent_info = next_account_info(account_info_iter)?;
-
+    let underlying_asset_address = next_account_info(account_info_iter)?;
+    msg!("****INDSIDE AFTER  BEGIN******");
+    let s0: String = (*mint_authority_info.key).to_string();
+    let s1: String = (*long_token_mint_info.key).to_string();
+    let s2: String = (Mint::LEN).to_string();
+    let s3: String = (*token_program_info.key).to_string();
+    let s4: String = (*rent_info.key).to_string();
+    msg!(&s0);
+    msg!(&s1);
+    msg!(&s2);
+    msg!(&s3);
+    msg!(&s4);
     create_new_account(
         mint_authority_info,
         long_token_mint_info,
@@ -121,6 +131,7 @@ pub fn process_initialize_binary_option(
         token_program_info,
         rent_info,
     )?;
+    msg!("*****created new mint accountlong ****");
     create_new_account(
         mint_authority_info,
         short_token_mint_info,
@@ -209,6 +220,7 @@ pub fn process_initialize_binary_option(
     binary_option.strike_exponent = strike_exponent;
     binary_option.circulation = 0;
     binary_option.settled = false;
+    binary_option.underlying_asset_address = *underlying_asset_address.key;
     msg!("##########");
     let s0: String = (decimals).to_string();
     let s1: String = (expiry).to_string();

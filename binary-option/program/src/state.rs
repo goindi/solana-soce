@@ -11,16 +11,17 @@ pub struct BinaryOption {
     pub decimals: u8,
     pub expiry: u64,
     pub strike: u64,
-    pub strike_exponent: i64,
+    pub strike_exponent: u64,
     pub circulation: u64,
     pub settled: bool,
+    pub underlying_asset_address: Pubkey,
     pub escrow_mint_account_pubkey: Pubkey,
     pub escrow_account_pubkey: Pubkey,
     pub long_mint_account_pubkey: Pubkey,
     pub short_mint_account_pubkey: Pubkey,
     pub owner: Pubkey,
     pub winning_side_pubkey: Pubkey,
-    //pub underlying_asset_address: String,
+    
     //let clock = Clock::get();
     // clock.unix_timestamp; 
     // note pub unix_timestamp: UnixTimestamp,
@@ -29,7 +30,7 @@ pub struct BinaryOption {
 }
 
 impl BinaryOption {
-    pub const LEN: usize = 226;
+    pub const LEN: usize = 258;
     // u8 = 1 
     // u64 = 8
     // pubkey 32

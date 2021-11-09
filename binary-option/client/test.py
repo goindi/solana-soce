@@ -10,10 +10,10 @@ from solana.publickey import PublicKey
 
 #api_endpoint = "https://api.testnet.solana.com/"
 #AIRDROP_AMT = 1000000000
-api_endpoint = "https://api.devnet.solana.com/"
-AIRDROP_AMT = 5000000000
-#api_endpoint = "http://127.0.0.1:8899"
-#AIRDROP_AMT = 100000000000
+#api_endpoint = "https://api.devnet.solana.com/"
+#AIRDROP_AMT = 5000000000
+api_endpoint = "http://127.0.0.1:8899"
+AIRDROP_AMT = 100000000000
 
 balance_data = []
 
@@ -114,15 +114,16 @@ strike = 56700
 exponent = 5
 decimals = 2
 underlying_asset_address = "4aDoSXJ5o3AuvL7QFeR6h44jALQfTmUUCTVGDD6aoJTM"
-res = json.loads(bp.initialize(api_endpoint, mint,decimals, expiry,strike,exponent, skip_confirmation=False))
+
+res = json.loads(bp.initialize(api_endpoint, mint,decimals, expiry,strike,exponent,underlying_asset_address, skip_confirmation=False))
 print(res)
 
 pool = res.get("binary_option")
 
 
-print(bp.mint_to(api_endpoint, pool, (a1.public_key), 1e6, skip_confirmation=False))
-print(bp.mint_to(api_endpoint, pool, (a2.public_key), 1e6, skip_confirmation=False))
-print(bp.mint_to(api_endpoint, pool, (a3.public_key), 1e6, skip_confirmation=False))
+#print(bp.mint_to(api_endpoint, pool, (a1.public_key), 1e6, skip_confirmation=False))
+#print(bp.mint_to(api_endpoint, pool, (a2.public_key), 1e6, skip_confirmation=False))
+#print(bp.mint_to(api_endpoint, pool, (a3.public_key), 1e6, skip_confirmation=False))
 
 pool_data = bp.load_binary_option(api_endpoint, pool)
 

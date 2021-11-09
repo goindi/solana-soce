@@ -43,7 +43,7 @@ def initialize_binary_option_instruction(
     expiry,
     strike,
     strike_exponent,
-    #underlying_asset_address,
+    underlying_asset,
 ):
     keys = [
         AccountMeta(pubkey=pool_account, is_signer=True, is_writable=True),
@@ -56,6 +56,7 @@ def initialize_binary_option_instruction(
         AccountMeta(pubkey=token_account, is_signer=False, is_writable=False),
         AccountMeta(pubkey=system_account, is_signer=False, is_writable=False),
         AccountMeta(pubkey=rent_account, is_signer=False, is_writable=False),
+        AccountMeta(pubkey=underlying_asset, is_signer=False, is_writable=False),
     ]
     data = struct.pack("<BBQQq", 0, decimals, expiry,strike,strike_exponent)
     return TransactionInstruction(keys=keys, program_id=PublicKey(BINARY_OPTION_PROGRAM_ID), data=data)
@@ -164,7 +165,7 @@ class BinaryOption():
         self.cipher = Fernet(cfg["DECRYPTION_KEY"])
 
 
-    def initialize(self, api_endpoint, escrow_mint, decimals, expiry,strike,strike_exponent, skip_confirmation=True):
+    def initialize(self, api_endpoint, escrow_mint, decimals, expiry,strike,strike_exponent, asset_key, skip_confirmation=True):
         msg = ""
         # Initalize Clinet
         client = Client(api_endpoint)
@@ -187,6 +188,8 @@ class BinaryOption():
         token_account = PublicKey(TOKEN_PROGRAM_ID)
         system_account = PublicKey(SYSTEM_PROGRAM_ID)
         rent_account = PublicKey(SYSVAR_RENT_ID)
+        underlying_asset_address = PublicKey(asset_key)
+        print(underlying_asset_address)
         msg += " | Gathered accounts"
         # List signers
         signers = [source_account, long_mint, short_mint, long_escrow, short_escrow, pool]
@@ -208,7 +211,7 @@ class BinaryOption():
             int(expiry),
             int(strike),
             int(strike_exponent),
-            #underlying_asset_address,
+            underlying_asset_address,
         )
         tx = tx.add(init_binary_option_ix)
         msg += f" | Creating binary option"
@@ -457,7 +460,7 @@ class BinaryOption():
                 }
             )
         pubkey = 'B' * 32
-        raw_bytes = struct.unpack(f"<BQQqQB{pubkey}{pubkey}{pubkey}{pubkey}{pubkey}{pubkey}", pool_data)
+        raw_bytes = struct.unpack(f"<BQQqQB{pubkey}{pubkey}{pubkey}{pubkey}{pubkey}{pubkey}{pubkey}", pool_data)
         i = 0
         pool = {}
         pool["decimals"] = raw_bytes[i] 
@@ -472,6 +475,8 @@ class BinaryOption():
         i += 1
         pool["settled"] = raw_bytes[i] 
         i += 1
+        pool["underlying_asset_address"] = base58.b58encode(bytes(raw_bytes[i:i+32])).decode('ascii')
+        i += 32
         pool["escrow_mint"] = base58.b58encode(bytes(raw_bytes[i:i+32])).decode('ascii')
         i += 32
         pool["escrow"] = base58.b58encode(bytes(raw_bytes[i:i+32])).decode('ascii')
