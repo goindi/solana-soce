@@ -6,7 +6,6 @@ use crate::{
         spl_set_authority, spl_token_transfer, spl_token_transfer_signed,
     },
     state::BinaryOption,
-    state::convert_u64_to_u8_array,
     system_utils::{create_new_account, create_or_allocate_account_raw},
     validation_utils::{
         assert_initialized, assert_keys_equal, assert_keys_unequal, assert_owned_by,
@@ -176,9 +175,8 @@ pub fn process_initialize_binary_option(
     // Transfer ownership of the escrow accounts to a PDA
     let (authority_key, _) = Pubkey::find_program_address(
         &[
-            underlying_asset_address.key.as_ref(),
-            &convert_u64_to_u8_array(expiry),
-            &convert_u64_to_u8_array(strike),
+            long_token_mint_info.key.as_ref(),
+            short_token_mint_info.key.as_ref(),
             token_program_info.key.as_ref(),
             program_id.as_ref(),
         ],
@@ -282,18 +280,16 @@ pub fn process_trade(
     // Get program derived address for escrow
     let (authority_key, bump_seed) = Pubkey::find_program_address(
         &[
-            binary_option.underlying_asset_address.as_ref(),
-            &convert_u64_to_u8_array(binary_option.expiry),
-            &convert_u64_to_u8_array(binary_option.strike),
+            long_token_mint_info.key.as_ref(),
+            short_token_mint_info.key.as_ref(),
             token_program_info.key.as_ref(),
             program_id.as_ref(),
         ],
         program_id,
     );
     let seeds = &[
-        binary_option.underlying_asset_address.as_ref(),
-        &convert_u64_to_u8_array(binary_option.expiry),
-        &convert_u64_to_u8_array(binary_option.strike),
+        long_token_mint_info.key.as_ref(),
+        short_token_mint_info.key.as_ref(),
         token_program_info.key.as_ref(),
         program_id.as_ref(),
         &[bump_seed],
