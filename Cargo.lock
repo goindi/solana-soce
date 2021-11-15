@@ -169,6 +169,7 @@ version = "0.1.0"
 dependencies = [
  "arrayref",
  "borsh",
+ "pyth-client",
  "solana-program",
  "spl-token 3.2.0",
  "thiserror",
@@ -2318,6 +2319,12 @@ dependencies = [
  "quote 1.0.9",
  "syn 1.0.69",
 ]
+
+[[package]]
+name = "pyth-client"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44de48029c54ec1ca570786b5baeb906b0fc2409c8e0145585e287ee7a526c72"
 
 [[package]]
 name = "qstring"

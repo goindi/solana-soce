@@ -118,12 +118,14 @@ def settle_instruction(
     long_mint_account,
     short_mint_account,
     pool_owner_account,
+    underlying_asset_address,
 ):
     keys = [
         AccountMeta(pubkey=pool_account, is_signer=False, is_writable=True),
         AccountMeta(pubkey=long_mint_account, is_signer=False, is_writable=False),
         AccountMeta(pubkey=short_mint_account, is_signer=False, is_writable=False),
         AccountMeta(pubkey=pool_owner_account, is_signer=True, is_writable=False),
+        AccountMeta(pubkey=underlying_asset_address, is_signer=False, is_writable=False),
     ]
     data = struct.pack("<B", 2)
     return TransactionInstruction(keys=keys, program_id=PublicKey(BINARY_OPTION_PROGRAM_ID), data=data)
@@ -256,6 +258,7 @@ class BinaryOption():
         buyer_account = buyer.public_key
         seller_account = seller.public_key
         token_account = PublicKey(TOKEN_PROGRAM_ID)
+        print(f"******$$$${[bytes(long_token_mint_account), bytes(short_token_mint_account), bytes(token_account), bytes(PublicKey(BINARY_OPTION_PROGRAM_ID))]}")
         escrow_owner_account = PublicKey.find_program_address(
             [bytes(long_token_mint_account), bytes(short_token_mint_account), bytes(token_account), bytes(PublicKey(BINARY_OPTION_PROGRAM_ID))],
             PublicKey(BINARY_OPTION_PROGRAM_ID),
@@ -351,7 +354,7 @@ class BinaryOption():
     #         msg += f" | ERROR: Encountered exception while attempting to send transaction: {e}"
     #         raise(e)
     
-    def settle(self, api_endpoint, pool_account, long_mint, short_mint, skip_confirmation=True):
+    def settle(self, api_endpoint, pool_account, long_mint, short_mint,asset_key, skip_confirmation=True):
         msg = ""
         client = Client(api_endpoint)
         msg += "Initialized client"
@@ -364,11 +367,13 @@ class BinaryOption():
         long_mint_account = PublicKey(long_mint)
         short_mint_account = PublicKey(short_mint) 
         tx = Transaction()
+        underlying_asset_address = PublicKey(asset_key)
         settle_ix = settle_instruction(
             pool_account,
             long_mint_account,
             short_mint_account,
             source_account.public_key,
+            underlying_asset_address,
         )
         tx = tx.add(settle_ix)
         # Send request

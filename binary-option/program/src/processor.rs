@@ -21,12 +21,23 @@ use solana_program::{
     pubkey::Pubkey,
     clock::Clock,
     sysvar::Sysvar,
-   
-
 };
 use spl_token::{
     instruction::AuthorityType,
     state::{Account, Mint},
+};
+use pyth_client::{
+  AccountType,
+  Mapping,
+  Product,
+  Price,
+  PriceType,
+  PriceStatus,
+  CorpAction,
+  cast,
+  MAGIC,
+  VERSION_2,
+  PROD_HDR_SIZE
 };
 
 pub struct Processor;
@@ -670,8 +681,37 @@ pub fn process_settle(_program_id: &Pubkey, accounts: &[AccountInfo]) -> Program
 }
 */
 
-pub fn get_price_from_pyth(asset: &String) -> (f64,f64){
+pub fn get_price_from_pyth(pyth_product_info: &AccountInfo) -> (f64,f64){
     //Needs implementation
+    let pyth_product_data = &pyth_product_info.data.borrow_mut();
+    msg!("*****************^^1.1^^********");
+    //let prod_acct = cast::<Product>( &pyth_product_data );
+    msg!("*****************^^2.0^^********");
+    let pyth_product = pyth_client::cast::<pyth_client::Product>(pyth_product_data);
+    msg!("*****************^^2^^********");
+    if pyth_product.magic != pyth_client::MAGIC {
+        msg!("Pyth product account provided is not a valid Pyth account");
+        //return Err(ProgramError::InvalidArgument.into());
+    }
+    msg!("*****************^^3^^********");
+    if pyth_product.atype != pyth_client::AccountType::Product as u32 {
+        msg!("Pyth product account provided is not a valid Pyth product account");
+        //return Err(ProgramError::InvalidArgument.into());
+    }
+    msg!("*****************^^4^^********");
+    if pyth_product.ver != pyth_client::VERSION_2 {
+        msg!("Pyth product account provided has a different version than the Pyth client");
+        //return Err(ProgramError::InvalidArgument.into());
+    }
+    msg!("*****************^^5^^********");
+    if !pyth_product.px_acc.is_valid() {
+        msg!("Pyth product price account is invalid");
+        //return Err(ProgramError::InvalidArgument.into());
+    }
+    
+    let pyth_price_pubkey = Pubkey::new(&pyth_product.px_acc.val);
+    msg!("******************%%%%%%%%%%********");
+    msg!(&pyth_price_pubkey.to_string());
     return(300.0,3.0);
 }
 
@@ -679,7 +719,6 @@ pub fn get_price_from_pyth(asset: &String) -> (f64,f64){
 pub fn process_settle_oracled(_program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     // This is a different implementation to take care of rug pull
     // The fn takes both mint accounts and decides using Pyth, who won
-    
     // The `pool_owner_info` needs to approve this action, so the recommended use case is to have a higher
     // level program own the pool and use an oracle to resolve settlements
     let account_info_iter = &mut accounts.iter();
@@ -688,6 +727,7 @@ pub fn process_settle_oracled(_program_id: &Pubkey, accounts: &[AccountInfo]) ->
     let short_mint_token_account_info = next_account_info(account_info_iter)?;
     //let winning_mint_account_info = next_account_info(account_info_iter)?;
     let pool_owner_info = next_account_info(account_info_iter)?;
+    let underlying_asset_address = next_account_info(account_info_iter)?;
     let mut binary_option =
         BinaryOption::try_from_slice(&binary_option_account_info.data.borrow_mut())?;
     if !pool_owner_info.is_signer {
@@ -707,7 +747,7 @@ pub fn process_settle_oracled(_program_id: &Pubkey, accounts: &[AccountInfo]) ->
     assert_keys_equal(*pool_owner_info.key, binary_option.owner)?;
     assert_keys_equal(*long_mint_token_account_info.key, binary_option.long_mint_account_pubkey)?;
     assert_keys_equal(*short_mint_token_account_info.key, binary_option.short_mint_account_pubkey)?;
-    let (settle_price,confidence_interval) = get_price_from_pyth(&String::from("foo"));
+    let (settle_price,confidence_interval) = get_price_from_pyth(&underlying_asset_address);
 
     if (settle_price+confidence_interval) > 100.0 {
         binary_option.winning_side_pubkey = binary_option.long_mint_account_pubkey;
