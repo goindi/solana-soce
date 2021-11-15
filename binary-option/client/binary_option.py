@@ -119,6 +119,7 @@ def settle_instruction(
     short_mint_account,
     pool_owner_account,
     underlying_asset_address,
+    asset_price_address,
 ):
     keys = [
         AccountMeta(pubkey=pool_account, is_signer=False, is_writable=True),
@@ -126,6 +127,7 @@ def settle_instruction(
         AccountMeta(pubkey=short_mint_account, is_signer=False, is_writable=False),
         AccountMeta(pubkey=pool_owner_account, is_signer=True, is_writable=False),
         AccountMeta(pubkey=underlying_asset_address, is_signer=False, is_writable=False),
+        AccountMeta(pubkey=asset_price_address, is_signer=False, is_writable=False),
     ]
     data = struct.pack("<B", 2)
     return TransactionInstruction(keys=keys, program_id=PublicKey(BINARY_OPTION_PROGRAM_ID), data=data)
@@ -354,7 +356,7 @@ class BinaryOption():
     #         msg += f" | ERROR: Encountered exception while attempting to send transaction: {e}"
     #         raise(e)
     
-    def settle(self, api_endpoint, pool_account, long_mint, short_mint,asset_key, skip_confirmation=True):
+    def settle(self, api_endpoint, pool_account, long_mint, short_mint,asset_key,asset_price_key, skip_confirmation=True):
         msg = ""
         client = Client(api_endpoint)
         msg += "Initialized client"
@@ -368,12 +370,14 @@ class BinaryOption():
         short_mint_account = PublicKey(short_mint) 
         tx = Transaction()
         underlying_asset_address = PublicKey(asset_key)
+        asset_price_address = PublicKey(asset_price_key)
         settle_ix = settle_instruction(
             pool_account,
             long_mint_account,
             short_mint_account,
             source_account.public_key,
             underlying_asset_address,
+            asset_price_address,
         )
         tx = tx.add(settle_ix)
         # Send request

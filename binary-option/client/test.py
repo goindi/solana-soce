@@ -113,7 +113,10 @@ expiry = int(time.time() + 2000)
 strike = 56700
 exponent = 5
 decimals = 2
-underlying_asset_address = "4aDoSXJ5o3AuvL7QFeR6h44jALQfTmUUCTVGDD6aoJTM"
+
+# ETH/USD on devnet
+underlying_asset_address = "2ciUuGZiee5macAMeQ7bHGTJtwcYTgnt6jdmQnnKZrfu"
+asset_px_address = "EdVCmQ9FSPcVe5YySXDPCRmc8aDQLKJ9xvYBMZPie1Vw"
 
 res = json.loads(bp.initialize(api_endpoint, mint,decimals, expiry,strike,exponent,underlying_asset_address, skip_confirmation=False))
 print(res)
@@ -146,7 +149,7 @@ update_and_print_state()
 
 long_mint = pool_data['long_mint']
 short_mint = pool_data['short_mint']
-print(bp.settle(api_endpoint, pool, long_mint,short_mint,underlying_asset_address, skip_confirmation=False))
+print(bp.settle(api_endpoint, pool, long_mint,short_mint,underlying_asset_address,asset_px_address, skip_confirmation=False))
 print(bp.collect(api_endpoint, pool, a1.public_key, skip_confirmation=False))
 print(bp.collect(api_endpoint, pool, a2.public_key, skip_confirmation=False))
 print(bp.collect(api_endpoint, pool, a3.public_key, skip_confirmation=False))

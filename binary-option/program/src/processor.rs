@@ -39,6 +39,7 @@ use pyth_client::{
   VERSION_2,
   PROD_HDR_SIZE
 };
+use std::convert::TryFrom;
 
 pub struct Processor;
 impl Processor {
@@ -684,16 +685,11 @@ pub fn process_settle(_program_id: &Pubkey, accounts: &[AccountInfo]) -> Program
 pub fn get_price_from_pyth(pyth_product_info: &AccountInfo) -> (f64,f64){
     //Needs implementation
     let pyth_product_data = &pyth_product_info.data.borrow_mut();
-    msg!("*****************^^1.1^^********");
-    //let prod_acct = cast::<Product>( &pyth_product_data );
-    msg!("*****************^^2.0^^********");
     let pyth_product = pyth_client::cast::<pyth_client::Product>(pyth_product_data);
-    msg!("*****************^^2^^********");
     if pyth_product.magic != pyth_client::MAGIC {
         msg!("Pyth product account provided is not a valid Pyth account");
         //return Err(ProgramError::InvalidArgument.into());
     }
-    msg!("*****************^^3^^********");
     if pyth_product.atype != pyth_client::AccountType::Product as u32 {
         msg!("Pyth product account provided is not a valid Pyth product account");
         //return Err(ProgramError::InvalidArgument.into());
@@ -727,7 +723,8 @@ pub fn process_settle_oracled(_program_id: &Pubkey, accounts: &[AccountInfo]) ->
     let short_mint_token_account_info = next_account_info(account_info_iter)?;
     //let winning_mint_account_info = next_account_info(account_info_iter)?;
     let pool_owner_info = next_account_info(account_info_iter)?;
-    let underlying_asset_address = next_account_info(account_info_iter)?;
+    let underlying_asset_info = next_account_info(account_info_iter)?;
+    let underlying_asset_px_info = next_account_info(account_info_iter)?;
     let mut binary_option =
         BinaryOption::try_from_slice(&binary_option_account_info.data.borrow_mut())?;
     if !pool_owner_info.is_signer {
@@ -747,18 +744,86 @@ pub fn process_settle_oracled(_program_id: &Pubkey, accounts: &[AccountInfo]) ->
     assert_keys_equal(*pool_owner_info.key, binary_option.owner)?;
     assert_keys_equal(*long_mint_token_account_info.key, binary_option.long_mint_account_pubkey)?;
     assert_keys_equal(*short_mint_token_account_info.key, binary_option.short_mint_account_pubkey)?;
-    let (settle_price,confidence_interval) = get_price_from_pyth(&underlying_asset_address);
 
-    if (settle_price+confidence_interval) > 100.0 {
+    let pyth_product_data = &underlying_asset_info.data.borrow_mut();
+    let pyth_product = pyth_client::cast::<pyth_client::Product>(pyth_product_data);
+
+    if pyth_product.magic != pyth_client::MAGIC {
+        msg!("Pyth product account provided is not a valid Pyth account");
+        return Err(ProgramError::InvalidArgument.into());
+    }
+    if pyth_product.atype != pyth_client::AccountType::Product as u32 {
+        msg!("Pyth product account provided is not a valid Pyth product account");
+        return Err(ProgramError::InvalidArgument.into());
+    }
+    if pyth_product.ver != pyth_client::VERSION_2 {
+        msg!("Pyth product account provided has a different version than the Pyth client");
+        return Err(ProgramError::InvalidArgument.into());
+    }
+    if !pyth_product.px_acc.is_valid() {
+        msg!("Pyth product price account is invalid");
+        return Err(ProgramError::InvalidArgument.into());
+    }
+    if binary_option.underlying_asset_address != *underlying_asset_info.key {
+        msg!("Pyth product account account is not same as option");
+        return Err(BinaryOptionError::UnderlyingAssetInvalid.into());
+    }
+
+    let pyth_price_pubkey = Pubkey::new(&pyth_product.px_acc.val);
+    if &pyth_price_pubkey != underlying_asset_px_info.key {
+        msg!("Pyth product price account does not match the Pyth price provided");
+        return Err(ProgramError::InvalidArgument.into());
+    }
+
+    let pyth_price_data = &underlying_asset_px_info.try_borrow_data()?;
+    let pyth_price = pyth_client::cast::<pyth_client::Price>(pyth_price_data);
+
+    msg!(&pyth_price_pubkey.to_string());
+
+    //let (settle_price,confidence_interval) = get_price_from_pyth(&underlying_asset_address);
+    let settle_price = pyth_price.agg.price as f64;
+    let confidence_interval =  pyth_price.agg.conf as f64;
+    let exponent = pyth_price.expo  ;
+    let base = 10.0 as f64;
+    let bo_strike = binary_option.strike as f64;
+    let bo_exp = binary_option.strike_exponent as i32;
+    let x = base.powi(exponent);
+
+    // let confidence_interval = i64::try_from(pyth_price.agg.conf).ok();
+    //let confidence_interval:i64 =  pyth_price.agg.conf as i64;
+    //let confidence_interval:i64 = pyth_price.agg.conf.try_from().unwrap();
+    //let exponent:i64 = pyth_price.expo.into();
+
+   
+    msg!("*****************^^5.1^^********");
+    let final_settle_px = settle_price*(base.powi(exponent));
+    msg!("*****************^^5.2^^********");
+    let final_conf = confidence_interval*(base.powi(exponent));
+    let strike_px = bo_strike*(base.powi(bo_exp));
+    msg!("*****************^^6^^********");
+    msg!(&final_settle_px.to_string());
+    msg!(&final_conf.to_string());
+ 
+    msg!("*****************^^7^^********");
+    msg!("*****************^^8^^********");
+    msg!(&settle_price.to_string());
+    msg!(&confidence_interval.to_string());
+    msg!(&exponent.to_string());
+    msg!(&strike_px.to_string());
+    msg!(&x.to_string());
+    msg!("*****************^^9^^********");
+
+    if (final_settle_px + final_conf) > strike_px {
         binary_option.winning_side_pubkey = binary_option.long_mint_account_pubkey;
     }
-    else if (settle_price-confidence_interval) < 100.0 {
+    else if (final_settle_px - final_conf) < strike_px {
         binary_option.winning_side_pubkey = binary_option.short_mint_account_pubkey;
     }
     //This is if we dont know whether long one or short. SO divide equally. FOr now maybe implementation will be in future
-    else{
+    else {
         binary_option.winning_side_pubkey = *binary_option_account_info.key;
     }
+    
    
     /*
     if *long_mint_token_account_info.key == binary_option.long_mint_account_pubkey
