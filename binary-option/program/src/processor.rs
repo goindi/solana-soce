@@ -778,40 +778,37 @@ pub fn process_settle_oracled(_program_id: &Pubkey, accounts: &[AccountInfo]) ->
     let pyth_price_data = &underlying_asset_px_info.try_borrow_data()?;
     let pyth_price = pyth_client::cast::<pyth_client::Price>(pyth_price_data);
 
-    msg!(&pyth_price_pubkey.to_string());
+    //msg!(&pyth_price_pubkey.to_string());
 
-    //let (settle_price,confidence_interval) = get_price_from_pyth(&underlying_asset_address);
     let settle_price = pyth_price.agg.price as f64;
+    let base10int = 10 as i64;
+    let base10 = 10.0 as f64;
     let confidence_interval =  pyth_price.agg.conf as f64;
-    let exponent = pyth_price.expo  ;
-    let base = 10.0 as f64;
+    let pyth_expo_factor:f64 =  if pyth_price.expo <0 {1.0/base10int.pow(-pyth_price.expo as u32) as f64} else {base10int.pow(pyth_price.expo as u32) as f64};
     let bo_strike = binary_option.strike as f64;
     let bo_exp = binary_option.strike_exponent as i32;
-    let x = base.powi(exponent);
 
-    // let confidence_interval = i64::try_from(pyth_price.agg.conf).ok();
-    //let confidence_interval:i64 =  pyth_price.agg.conf as i64;
-    //let confidence_interval:i64 = pyth_price.agg.conf.try_from().unwrap();
-    //let exponent:i64 = pyth_price.expo.into();
-
-   
-    msg!("*****************^^5.1^^********");
-    let final_settle_px = settle_price*(base.powi(exponent));
-    msg!("*****************^^5.2^^********");
-    let final_conf = confidence_interval*(base.powi(exponent));
-    let strike_px = bo_strike*(base.powi(bo_exp));
+    let final_settle_px = settle_price*pyth_expo_factor;
+    if final_settle_px > 5000.0{
+        msg!("foobal");
+    }
+    else if final_settle_px < 5000.0{
+        msg!("foobal2");
+    }
+    else if final_settle_px < 200.0{
+        msg!("foobal3");
+    }
+    let final_conf = confidence_interval*pyth_expo_factor;
+    let strike_px = bo_strike*(base10.powi(bo_exp));
     msg!("*****************^^6^^********");
     msg!(&final_settle_px.to_string());
     msg!(&final_conf.to_string());
- 
     msg!("*****************^^7^^********");
-    msg!("*****************^^8^^********");
     msg!(&settle_price.to_string());
     msg!(&confidence_interval.to_string());
-    msg!(&exponent.to_string());
     msg!(&strike_px.to_string());
-    msg!(&x.to_string());
-    msg!("*****************^^9^^********");
+    msg!(&pyth_expo_factor.to_string());
+    msg!("*****************^^8^^********");
 
     if (final_settle_px + final_conf) > strike_px {
         binary_option.winning_side_pubkey = binary_option.long_mint_account_pubkey;
@@ -824,7 +821,6 @@ pub fn process_settle_oracled(_program_id: &Pubkey, accounts: &[AccountInfo]) ->
         binary_option.winning_side_pubkey = *binary_option_account_info.key;
     }
     
-   
     /*
     if *long_mint_token_account_info.key == binary_option.long_mint_account_pubkey
         || *short_mint_token_account_info.key == binary_option.short_mint_account_pubkey
